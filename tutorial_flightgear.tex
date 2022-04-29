@@ -1,0 +1,105 @@
+\documentclass[a4paper]{article}
+
+\usepackage{array}
+\usepackage{placeins}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{todonotes}
+\usepackage{listings}
+\usepackage{svg}
+
+\usepackage{hopsantut}
+
+\begin{document}
+\maketitle{Communicating with FlightGear}
+
+\section*{Introduction}
+In this tutorial we will explain how to exchange data between Hopsan and FlightGear in real-time using UDP sockets. This enables for example to control an aircraft using an autopilot in Hopsan, or to use a flight dynamics model (FDM) in Hopsan. The latter also enables detailed simulations of aircraft systems using either Hopsan components or models from other tools using the Functional Mockup Interface (FMI).
+
+\section*{Requirements}
+The UDP connection currently works only on Windows. It is tested against FlightGear 2020.3.11, but will most likely work with all recent versions. In addiction to FlightGear you will also need to download a custom component library from \url{https://github.com/Hopsan/development-libraries}. Click "Code" and then "Download ZIP", or clone the directory using Git.
+
+Some basic knowledge of Hopsan is also required. It is recommended to do the "Getting Started" and "Advanced Usage" tutorials before this one. If you want to modify the connection, for example to access other variables in FlightGear, you also need to know how to write Hopsan components. This is introduced in the "Writing Components" tutorial.
+
+\section*{Preparing FlightGear}
+
+\begin{tutenumerate}
+\tutitem{Copy the XML protocol file}
+Before starting FlightGear, we must provide information about which variables to send and receive, and how the data is formatted. This is specified by an XML file, which is already available in the FlightGearLib folder.
+
+Copy \texttt{hopsan.xml} from FlightGearLib folder to \texttt{<flightgear>/data/Protocol} folder.
+
+\tutitem{Start FlightGear with custom arguments}
+We must also inform FlightGear that it shall read the XML file, and which network protocol, address and port to use. This is done by starting the program with custom arguments.
+
+\textbf{Option 1:} Start FlightGear from command line:
+\begin{lstlisting}[frame=single]
+fgfs.exe --generic=socket,out,100,localhost,9997,udp,hopsan
+         --generic=socket,in,100,localhost,9999,udp,hopsan
+         --fdm=external
+\end{lstlisting}
+
+\textbf{Option 2:} Start FlightGear launcher. Go to "Settings" \textrightarrow "Additional Settings" and enter:
+\begin{lstlisting}[frame=single]
+--generic=socket,out,100,localhost,9997,udp,hopsan
+--generic=socket,in,100,localhost,9999,udp,hopsan
+--fdm=external
+\end{lstlisting}
+
+The first argument tells FightGear to write outputs specified in \texttt{hopsan.xml} with 100 Hz to port 9997 on the local computer using UDP sockets. The second argument is similar, but tells it to read inputs at port 9999. The third argument is used to disable the flight dynamics model in FlightGear, so that we can control position and orientation directly from Hopsan.
+\end{tutenumerate}
+
+\section*{Prepare your Hopsan model}
+\begin{tutenumerate}
+	\tutitem{Download and start Hopsan}
+	The FlightGear connection has been tested with version 2.19.1, but any recent version should work. You will need a version with a compiler included.
+	\tutitem{Load the FlightGearLib library}
+	Hopsan will automatically (re)compile the library if necessary. The library contains two components:
+	
+	\textbf{FlightGearPositionOrientation}\\
+	\includesvg[height=0.13\textwidth]{gfx/FlightGearPositionOrientation}\\
+	This component has six input ports:
+	
+	\begin{tabular}{|l l|l l|}
+		\hline
+		altitude & [m] & roll & [rad] \\
+				\hline
+		latitude & [rad] & pitch & [rad] \\
+				\hline
+		longitude & [rad] & heading & [rad] \\
+				\hline
+	\end{tabular}
+
+	These variables are send to FlightGear, which makes it possible to control the position and orientation of the plane.
+	
+	\textbf{FlightGearWeather}\\
+	\includesvg[height=0.13\textwidth]{gfx/FlightGearWeather}\\
+	This component has two output ports:
+		
+	\begin{tabular}{|l l|}
+		\hline
+		windheading & [deg]\\
+		\hline
+		windspeed & [kt]\\
+		\hline
+	\end{tabular}
+
+	These variables are sent from FlightGear to Hopsan. Notice that this depends on the weather model in FlightGear. 
+	
+	\tutitem{Build your model}
+	Now build a model that uses one or both of these components. You can use animation components for changing inputs or reading outputs in real-time. These are found under "Signal/Animation" in the component library.
+	
+	\tutitem{Start a real-time animation}
+	The connection between Hopsan and FlightGear requires a real-time simulation. Go to animation mode:
+	
+	\icon{0}{gfx/Hopsan-Animation.png}{Animate}
+	
+	Then click on \textit{Play interactive animation} icon to start a real-time animation.
+	
+	\icon{0}{gfx/Hopsan-PlayRealTime.png}{Start interactive animation}
+	
+	The model is now being simulated in real-time. If both Hopsan and FlightGear are running, the position and orientation of the aircraft should be directly controllable from Hopsan.
+\end{tutenumerate}
+
+\end{document}
